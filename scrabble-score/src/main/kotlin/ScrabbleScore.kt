@@ -22,7 +22,7 @@ object ScrabbleScore {
         return letterValues[c] ?: 0;
     }
 
-    fun scoreWord(word: String): Int {
-        return word.uppercase().sumOf { scoreLetter(it) }
+    fun scoreWord(word: String, multiplier: Array<Int> = Array(word.length) { 1 }): Int {
+        return IntRange(0, word.length - 1).sumOf { scoreLetter(word.uppercase()[it]) * (multiplier[it]) }
     }
 }
