@@ -1,40 +1,48 @@
-class CustomSet() {
+class CustomSet(vararg items: List<Int>) {
 
-    // TODO: implement proper constructor
+    constructor(vararg items: Int) : this(items.asList())
 
-    fun isEmpty(): Boolean {
-        TODO("Implement this function to complete the task")
-    }
+    constructor() : this(emptyList())
 
-    fun isSubset(other: CustomSet): Boolean {
-        TODO("Implement this function to complete the task")
-    }
+    private val internalStore = items.toList().flatten().toMutableList()
 
-    fun isDisjoint(other: CustomSet): Boolean {
-        TODO("Implement this function to complete the task")
-    }
+    private fun asList(): List<Int> =
+            internalStore.toList()
 
-    fun contains(other: Int): Boolean {
-        TODO("Implement this function to complete the task")
-    }
+    fun isEmpty(): Boolean =
+            internalStore.isEmpty()
+
+    fun isSubset(other: CustomSet): Boolean =
+            internalStore.all { other.contains(it) }
+
+    fun isDisjoint(other: CustomSet): Boolean =
+            other.asList().none { internalStore.contains(it) }
+
+    fun contains(other: Int): Boolean =
+            internalStore.contains(other)
 
     fun intersection(other: CustomSet): CustomSet {
-        TODO("Implement this function to complete the task")
+        val sublist = other.asList().filter { internalStore.contains(it) }
+        return CustomSet(sublist)
     }
+
 
     fun add(other: Int) {
-        TODO("Implement this function to complete the task")
+        if (!internalStore.contains(other)) {
+            internalStore.add(other)
+        }
     }
 
-    override fun equals(other: Any?): Boolean {
-        TODO("Implement this function to complete the task")
-    }
+    override fun equals(other: Any?): Boolean =
+            if (other is CustomSet) {
+                other.isSubset(this) && this.isSubset(other)
+            } else false
 
-    operator fun plus(other: CustomSet): CustomSet {
-        TODO("Implement this function to complete the task")
-    }
 
-    operator fun minus(other: CustomSet): CustomSet {
-        TODO("Implement this function to complete the task")
-    }
+    operator fun plus(other: CustomSet) =
+            CustomSet(internalStore, other.asList().filter { !this.contains(it) })
+
+
+    operator fun minus(other: CustomSet) =
+            CustomSet(internalStore.filter { !other.contains(it) })
 }
