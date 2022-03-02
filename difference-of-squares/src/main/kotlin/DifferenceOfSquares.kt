@@ -4,14 +4,14 @@
  * e.g.
  * beforeToZero(5) returns 4 + 3 + 2 + 1 == 10
  */
-fun beforeToZero(exclusive : Int) :Int{
+fun beforeToZero(exclusive: Int): Int {
     return (1 until exclusive).sum()
 }
 
 /**
  * extension method that squares the provided Integer
  */
-fun Int.squared():Int{
+fun Int.squared(): Int {
     return this * this;
 }
 
