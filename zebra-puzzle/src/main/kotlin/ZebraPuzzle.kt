@@ -18,7 +18,6 @@ data class House(
         val beverage: Beverage,
 )
 
-typealias Clue<T, R> = List<T>.(List<R>) -> Boolean
 typealias Clues<T, R> = (List<T>, List<R>) -> Boolean
 
 class ZebraPuzzle() {
@@ -26,50 +25,69 @@ class ZebraPuzzle() {
     /*
     * Stores a sequence of all possible combinations of the enums
     * */
-    val colourCombinations = HouseColours.values().toList().createAllCombinations().asSequence()
-    val nationalityCombinations = Nationality.values().toList().createAllCombinations().asSequence()
-    val petCombinations = Pet.values().toList().createAllCombinations().asSequence()
-    val smokeCombinations = Smokes.values().toList().createAllCombinations().asSequence()
-    val beverageCombinations = Beverage.values().toList().createAllCombinations().asSequence()
+    private val colourCombinations = HouseColours.values().toList().getAllPossibleCombinations().asSequence()
+    private val nationalityCombinations = Nationality.values().toList().getAllPossibleCombinations().asSequence()
+    private val petCombinations = Pet.values().toList().getAllPossibleCombinations().asSequence()
+    private val smokeCombinations = Smokes.values().toList().getAllPossibleCombinations().asSequence()
+    private val beverageCombinations = Beverage.values().toList().getAllPossibleCombinations().asSequence()
 
-    val validStreet: Sequence<Street> = createAllPossibleStreets()
+    /**
+     * Stores the result of the filtering by clues
+     */
+    private val validStreet: Sequence<Street> = findValidStreets()
 
-    fun createAllPossibleStreets(): Sequence<Street> {
-        return colourCombinations
-            .filter { it.greenToRightOfIvory() }
-            .map { houseColour ->
-                nationalityCombinations
-                    .filter { englishmanHasRedHouse(it, houseColour) }
-                    .filter { it.norwegianHouse1() }
-                    .filter { it.norwegianNextToBlue(houseColour) }
+    /** Identify the nationality of the house owner who drinks water */
+    fun drinksWater(): String {
+        return validStreet.map { it.houses.filter { house -> house.beverage == Beverage.WATER } }
+            .flatten()
+            .joinToString { it.nationality.toString }
+    }
+
+    /** Identify the nationality of the house owner that keeps a zebra as a pet */
+    fun ownsZebra(): String {
+        return validStreet.map { it.houses.filter { house -> house.pet == Pet.ZEBRA } }
+            .flatten()
+            .joinToString { it.nationality.toString }
+    }
+
+    /** Combines and filters the combinations to determine only the valid combinations based on the given clues */
+    private fun findValidStreets(): Sequence<Street> {
+        return colourCombinations.filter { it.greenToRightOfIvory() }.map { houseColour ->
+                nationalityCombinations.filter { englishmanHasRedHouse(it, houseColour) }
+                    .filter { norwegianLivesInFirstHouse(it) }
+                    .filter { norwegianLivesNextToBlueHouse(it, houseColour) }
                     .map { nationality ->
-                        petCombinations
-                            .filter { spaniardHasPetDog(nationality, it) }
-                            .map { pet ->
-                                smokeCombinations
-                                    .filter { oldGoldSmokerKeepsSnails(it, pet) }
+                        petCombinations.filter { spaniardHasPetDog(nationality, it) }.map { pet ->
+                                smokeCombinations.filter { oldGoldSmokerKeepsSnails(it, pet) }
                                     .filter { koolSmokerLivesInYellowHouse(it, houseColour) }
-                                    .filter { it.chesterfieldsNextToFox(pet) }
-                                    .filter { it.koolsNextToHorse(pet) }
-                                    .filter { nationality.japaneseSmokesParliaments(it) }
+                                    .filter { chesterfieldSmokerLivesNextToFox(it, pet) }
+                                    .filter { koolsSmokerLivesNextToFox(it, pet) }
+                                    .filter { japaneseSmokesParliaments(nationality, it) }
                                     .map { smokes ->
-                                        beverageCombinations
-                                            .filter { coffeeIsDrunkInGreenHouse(it, houseColour) }
+                                        beverageCombinations.filter { coffeeIsDrunkInGreenHouse(it, houseColour) }
                                             .filter { ukrainianDrinksTea(nationality, it) }
-                                            .filter { it.milkInMiddle() }
-                                            .filter { it.luckyStrikesDrinksOJ(smokes) }
+                                            .filter { milkDrinkerInMiddleHouse(it) }
+                                            .filter { luckyStrikeSmokerDrinksOJ(smokes, it) }
                                             .map { beverage ->
-                                                createStreet(houseColour, nationality, pet, smokes, beverage)
+                                                createStreetFromLists(houseColour, nationality, pet, smokes, beverage)
                                             }
-                                    }.flatten()
+                                    }
+                                    .flatten()
                             }.flatten()
-                    }.flatten()
+                    }
+                    .flatten()
             }.flatten()
     }
 
-    fun createStreet(
-            colours: List<HouseColours>, nationalities: List<Nationality>, pets: List<Pet>,
-            smokes: List<Smokes>, beverages: List<Beverage>,
+    /**
+     * Creates a Street of houses from a combination of lists.
+     * */
+    private fun createStreetFromLists(
+            colours: List<HouseColours>,
+            nationalities: List<Nationality>,
+            pets: List<Pet>,
+            smokes: List<Smokes>,
+            beverages: List<Beverage>,
     ): Street {
         require(colours.size == nationalities.size and pets.size and smokes.size and beverages.size)
 
@@ -78,8 +96,10 @@ class ZebraPuzzle() {
         })
     }
 
-    fun <T> List<T>.createAllCombinations(): List<List<T>> {
-
+    /**
+     * Recursively generates all combinations of the supplied list
+     * */
+    private fun <T> List<T>.getAllPossibleCombinations(): List<List<T>> {
         fun go(remaining: List<T>, ordered: List<T>): List<List<T>> {
             if (remaining.isEmpty()) {
                 return listOf(ordered)
@@ -95,7 +115,7 @@ class ZebraPuzzle() {
      * Checks whether the first and second are located at the same index within the list
      * i.e they share a house
      * */
-    fun <T : Enum<T>, R : Enum<R>> sameHouse(
+    private fun <T : Enum<T>, R : Enum<R>> sameHouse(
             first: List<Enum<T>>, requiredFirst: T, second: List<Enum<R>>, requiredSecond: R,
     ) =
         first.indices.any { (first[it] == requiredFirst) and (second[it] == requiredSecond) }
@@ -120,65 +140,62 @@ class ZebraPuzzle() {
         sameHouse(nationalities, Nationality.UKRAINIAN, drinks, Beverage.TEA)
     }
 
-    /** Clue 7 */
-    val oldGoldSmokerKeepsSnails: Clues<Smokes, Pet> = { smokes, pets ->
-        sameHouse(smokes, Smokes.OLD_GOLD, pets, Pet.SNAILS)
-    }
-
-    val koolSmokerLivesInYellowHouse: Clues<Smokes, HouseColours> = { smokes, colours ->
-        sameHouse(smokes, Smokes.KOOLS, colours, HouseColours.YELLOW)
-    }
-
-
-    fun List<Beverage>.milkInMiddle(): Boolean =
-        this[2] == Beverage.MILK
-
-    fun List<Nationality>.norwegianHouse1(): Boolean =
-        this[0] == Nationality.NORWEGIAN
-
-    val luckyStrikesDrinksOJ: Clue<Beverage, Smokes> = { that ->
-        this.indices.any { (this[it] == Beverage.ORANGE_JUICE) and (that[it] == Smokes.LUCKY_STRIKES) }
-    }
-
-    val japaneseSmokesParliaments: Clue<Nationality, Smokes> = { that ->
-        this.indices.any { (this[it] == Nationality.JAPANESE) and (that[it] == Smokes.PARLIAMENTS) }
-    }
-
+    /** Clue 6 */
     fun List<HouseColours>.greenToRightOfIvory(): Boolean =
         this.indices.any {
             (this[it] == HouseColours.GREEN) and (this.getOrNull(it + 1) == HouseColours.IVORY)
         }
 
-    val chesterfieldsNextToFox: Clue<Smokes, Pet> = { that ->
-        this.indices.any {
-            (this[it] == Smokes.CHESTERFIELDS) and ((that.getOrNull(it + 1) == Pet.FOX) or (that.getOrNull(
+    /** Clue 7 */
+    val oldGoldSmokerKeepsSnails: Clues<Smokes, Pet> = { smokes, pets ->
+        sameHouse(smokes, Smokes.OLD_GOLD, pets, Pet.SNAILS)
+    }
+
+    /** Clue 8 */
+    val koolSmokerLivesInYellowHouse: Clues<Smokes, HouseColours> = { smokes, colours ->
+        sameHouse(smokes, Smokes.KOOLS, colours, HouseColours.YELLOW)
+    }
+
+    /** Clue 9 */
+    fun milkDrinkerInMiddleHouse(beverage: List<Beverage>): Boolean =
+        beverage[2] == Beverage.MILK
+
+    /** Clue 10 */
+    fun norwegianLivesInFirstHouse(nationality: List<Nationality>): Boolean =
+        nationality[0] == Nationality.NORWEGIAN
+
+    /** Clue 11 */
+    val chesterfieldSmokerLivesNextToFox: Clues<Smokes, Pet> = { smokes, pets ->
+        smokes.indices.any {
+            (smokes[it] == Smokes.CHESTERFIELDS) and ((pets.getOrNull(it + 1) == Pet.FOX) or (pets.getOrNull(
                     it - 1) == Pet.FOX))
         }
     }
-    val koolsNextToHorse: Clue<Smokes, Pet> = { that ->
-        this.indices.any {
-            (this[it] == Smokes.KOOLS) and ((that.getOrNull(it + 1) == Pet.HORSE) or (that.getOrNull(
+
+    /** Clue 12 */
+    val koolsSmokerLivesNextToFox: Clues<Smokes, Pet> = { smokes, pets ->
+        smokes.indices.any {
+            (smokes[it] == Smokes.KOOLS) and ((pets.getOrNull(it + 1) == Pet.HORSE) or (pets.getOrNull(
                     it - 1) == Pet.HORSE))
         }
     }
 
-    val norwegianNextToBlue: Clue<Nationality, HouseColours> = { that ->
-        this.indices.any {
-            (this[it] == Nationality.NORWEGIAN) and ((that.getOrNull(it + 1) == HouseColours.BLUE) or (that.getOrNull(
-                    it - 1) == HouseColours.BLUE))
+    /** Clue 13 */
+    val luckyStrikeSmokerDrinksOJ: Clues<Smokes, Beverage> = { smokes, beverage ->
+        smokes.indices.any { (smokes[it] == Smokes.LUCKY_STRIKES) and (beverage[it] == Beverage.ORANGE_JUICE) }
+    }
+
+    /** Clue 14 */
+    val japaneseSmokesParliaments: Clues<Nationality, Smokes> = { nationality, smokes ->
+        nationality.indices.any { (nationality[it] == Nationality.JAPANESE) and (smokes[it] == Smokes.PARLIAMENTS) }
+    }
+
+    /** Clue 15 */
+    val norwegianLivesNextToBlueHouse: Clues<Nationality, HouseColours> = { nationality, houseColours ->
+        nationality.indices.any {
+            (nationality[it] == Nationality.NORWEGIAN) and ((houseColours.getOrNull(
+                    it + 1) == HouseColours.BLUE) or (houseColours.getOrNull(it - 1) == HouseColours.BLUE))
         }
-    }
-
-    fun drinksWater(): String {
-        return validStreet.map { it.houses.filter { house -> house.beverage == Beverage.WATER } }
-            .flatten()
-            .joinToString { it.nationality.toString }
-    }
-
-    fun ownsZebra(): String {
-        return validStreet.map { it.houses.filter { house -> house.pet == Pet.ZEBRA } }
-            .flatten()
-            .joinToString { it.nationality.toString }
     }
 
     /**
