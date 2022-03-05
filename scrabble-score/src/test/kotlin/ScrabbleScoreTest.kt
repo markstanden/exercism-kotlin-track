@@ -17,26 +17,4 @@ class ScrabbleScoreTest(val input: String, val expectedOutput: Int) {
     fun test() {
         assertEquals(expectedOutput, ScrabbleScore.scoreWord(input))
     }
-
-    @Test
-    fun testDouble() {
-        assertEquals(174, ScrabbleScore.scoreWord("abcdefghijklmnopqrstuvwxyz", Array(26) { 2 }))
-    }
-
-    @Test
-    fun testTriple() {
-        assertEquals(261, ScrabbleScore.scoreWord("abcdefghijklmnopqrstuvwxyz", Array(26) { 3 }))
-    }
-
-    @Test
-    fun testLongMultiplier() {
-        assertEquals(87, ScrabbleScore.scoreWord("abcdefghijklmnopqrstuvwxyz", Array(27) { 1 }))
-    }
-
-    @Test
-    fun testShortMultiplier() {
-        assertEquals(91, ScrabbleScore.scoreWord("abcdefghijklmnopqrstuvwxyz", Array(2) { 2 }), "A & B doubled, with a short multiplier")
-    }
-
-
 }
