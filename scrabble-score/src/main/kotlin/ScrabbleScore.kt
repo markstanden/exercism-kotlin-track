@@ -23,6 +23,6 @@ object ScrabbleScore {
     }
 
     fun scoreWord(word: String, multiplier: Array<Int> = Array(word.length) { 1 }): Int {
-        return IntRange(0, word.length - 1).sumOf { scoreLetter(word.uppercase()[it]) * (multiplier[it] ?: 1) }
+        return IntRange(0, word.length - 1).sumOf { scoreLetter(word.uppercase()[it]) * (multiplier.getOrNull(it) ?: 1) }
     }
 }
