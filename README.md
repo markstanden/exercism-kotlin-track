@@ -1,1 +1,1 @@
-# My exercism solutions
+# My Kotlin exercism solutions
